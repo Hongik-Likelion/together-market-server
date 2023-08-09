@@ -45,8 +45,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'channels',
     'account',
-
-
+    'shop',
 ]
 
 MIDDLEWARE = [
@@ -86,7 +85,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "local-d",
+        "NAME": "hyun",
         "USER": env("USER"),
         "PASSWORD": env("PASSWORD"),
         "HOST": env("HOST"),
