@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
-    'channels'
+    'channels',
+    'account',
+
 
 ]
 
@@ -84,7 +86,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "todo",
+        "NAME": "local-d",
         "USER": env("USER"),
         "PASSWORD": env("PASSWORD"),
         "HOST": env("HOST"),
@@ -135,4 +137,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ASGI_APPLICATION = 'config.asgi.application'
+
+AUTH_USER_MODEL = 'account.User'
 
