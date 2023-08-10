@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'channels',
     'account',
     'shop',
+    'market',
 ]
 
 MIDDLEWARE = [
@@ -85,7 +86,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "hyun",
+        "NAME": env("NAME"),
         "USER": env("USER"),
         "PASSWORD": env("PASSWORD"),
         "HOST": env("HOST"),
