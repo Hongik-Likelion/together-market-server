@@ -21,6 +21,7 @@ import market.urls
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("markets/", include(market.urls.urlpatterns)),
     path("user/", include("account.urls")),
+    path("markets/", include(market.urls.urlpatterns)),
+    path("products/", include("products.urls")),
 ]
