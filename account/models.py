@@ -20,11 +20,9 @@ class UserManager(BaseUserManager):
         return user
 
 
-
-
 # Create your models here.
 class User(AbstractBaseUser, PermissionsMixin):
-    user_id = models.BigAutoField(primary_key=True, null=False, unique=True)
+    id = models.BigAutoField(primary_key=True, null=False, unique=True)
     email = models.EmailField(unique=True)
     is_owner = models.BooleanField()
     nickname = models.CharField(max_length=10)
@@ -33,7 +31,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
     USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username", "nickname", "profile", "is_owner"]
 
-
-
-
+    def __str__(self) -> str:
+        return f"user_id={self.id} email={self.email} nickname={self.nickname}"
