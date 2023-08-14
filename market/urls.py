@@ -1,7 +1,8 @@
 from django.urls import path
 
-from market.views import MarketListAPIView
+from market.views import post_favourite_market, get_market_list_view
 
 urlpatterns = [
-    path('', MarketListAPIView.as_view()),
+    path('', get_market_list_view),
+    path('favourite/', post_favourite_market),
 ]
