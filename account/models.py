@@ -35,3 +35,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return f"user_id={self.id} email={self.email} nickname={self.nickname}"
+
+
+class BlackList(models.Model):
+    black_list_id = models.BigAutoField(primary_key=True, null=False, unique=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    blocked_user_id = models.BigIntegerField(null=False, unique=True)
