@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from account.serializers import RegisterSerializer
+from account.serializers import BlackListSerializer, LoginSerializer, RegisterSerializer
 
 
 User = get_user_model()
@@ -58,28 +58,22 @@ Returns:
 
 @api_view(["POST"])
 def login_view(request):
-    email = request.data.get("email")
-    if email is None:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+    serializer = LoginSerializer(data=request.data)
 
-    try:
-        user = User.objects.get(email=email)
+    if serializer.is_valid(raise_exception=True):
+        user = serializer.validated_data
+
         token = TokenObtainPairSerializer.get_token(user)
         refresh_token = str(token)
         access_token = str(token.access_token)
         res = Response(
-            {
-                "message": "login success",
-                "token": {
-                    "access": access_token,
-                    "refresh": refresh_token,
-                },
+            data={
+                "access_token": access_token,
+                "refresh_token": refresh_token,
             },
             status=status.HTTP_200_OK,
         )
         return res
-    except User.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 """개인정보 조회 뷰  
@@ -101,6 +95,7 @@ def user_info_view(request):
 
     res = Response(
         data={
+            "user_id": user.id,
             "email": user.email,
             "nickname": user.nickname,
             "profile": user.profile,
@@ -111,3 +106,32 @@ def user_info_view(request):
     )
 
     return res
+
+
+"""사용자 차단 뷰
+Returns:
+    200: 차단 성공, 차단한 유저 정보 return
+    401: access_token이 valid 하지 않은 경우
+    404: 차단할 유저를 발견하지 못함
+"""
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def user_block_view(request, user_id):
+    # 차단하려는 유저자 존재하는지 검색
+    serializer = BlackListSerializer(data={"blocked_user_id": user_id})
+
+    if serializer.is_valid(raise_exception=True):
+        user = serializer.save(user=request.user)
+        return Response(
+            data={
+                "id": user.id,
+                "email": user.email,
+                "nickname": user.nickname,
+                "profile": user.profile,
+                "introduction": user.introduction,
+                "is_owner": user.is_owner,
+            },
+            status=status.HTTP_200_OK,
+        )
