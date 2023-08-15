@@ -3,7 +3,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.test import APIClient, APITestCase
 
 from account.models import User
-from boards.serializers import BoardSerializer
+from boards.models import BoardPhoto
+from boards.serializers import BoardSerializer, BoardCustomerSerializer
 from market.models import Market
 from products.models import Product
 from shop.models import Shop
@@ -13,12 +14,22 @@ class TestBoard(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.board_request = {
-            "market": 1,
-            "shop": 1,
+            "market_id": 1,
+            "shop_id": 1,
             "market_name": "강남시장",
             "shop_name": "바삭마차",
             "purchased_products": [1, 2],
-            "photo": ["image1", "image2"],
+            "photo": ["이미지", "이미지2"],
+            "content": "맛있어요",
+            "rating": 4
+        }
+        cls.invalid_request = {
+            "market_id": 1,
+            "shop_id": 3,
+            "market_name": "강남시장",
+            "shop_name": "바삭마차",
+            "purchased_products": [1, 2],
+            "photo": ["이미지", "이미지2"],
             "content": "맛있어요",
             "rating": 4
         }
@@ -61,6 +72,26 @@ class TestBoard(APITestCase):
     def setUp(self):
         self.client = APIClient()
 
+    def test_serializer_validation(self):
+        data = self.board_request.copy()
+        data["user_id"] = 1
+        serializer = BoardCustomerSerializer(data=data)
+        data.pop("photo", [])
+        self.assertEqual(True, serializer.is_valid())
+
+    def test_serializer_save(self):
+        data = self.board_request
+        data["user_id"] = 1
+        photo_data = data.pop("photo", [])
+        serializer = BoardCustomerSerializer(data=data)
+
+        if serializer.is_valid(raise_exception=True):
+            board = serializer.save()
+            for image in photo_data:
+                BoardPhoto.objects.create(board_id=board.board_id, image=image)
+            self.assertEqual(board.rating, self.board_request.get("rating"))
+            self.assertEqual(2, len(board.photo.all()))
+
     def test_post(self):
         # given
         url_login = "/user/login/"
@@ -71,16 +102,9 @@ class TestBoard(APITestCase):
         access_token = response_login.data.get("access_token")
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
 
-        serializer = BoardSerializer(data=self.board_request, context={'request': self.client.request()})
-
-        if serializer.is_valid():
-            serializer.save()
-        else:
-            print(serializer.errors)
-
-
         response_post = self.client.post(url_post, self.board_request)
-
-        print(response_post.content)
+        response_post_invalid = self.client.post(url_post, self.invalid_request)
 
         self.assertEqual(201, response_post.status_code)
+        self.assertEqual(2, len(response_post.data.get("photo")))
+        self.assertEqual(404, response_post_invalid.status_code)
