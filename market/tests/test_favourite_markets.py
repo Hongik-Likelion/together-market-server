@@ -1,32 +1,32 @@
-from django.test import TestCase
-from rest_framework.test import APIClient, APITestCase
-from rest_framework.authentication import get_user_model
+from pprint import pprint
 
+from rest_framework.authentication import get_user_model
+from rest_framework.test import APIClient, APITestCase
+from account.serializers import RegisterSerializer
 from market.models import Market
 
 User = get_user_model()
 
-# Create your tests here.
-class MarketTestApi(APITestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.valid_user = {
-            "email": "testuser@gmail.com",
-            "nickname": "테스트 유저1",
-            "is_owner": False,
-            "profile": "https://cdn.pixabay.com/photo/2015/03/10/17/23/youtube-667451_1280.png",
-        }
-        newUser = User(
-            id=1,
-            email="testuser@gmail.com",
-            profile="https://cdn.pixabay.com/photo/2015/03/10/17/23/youtube-667451_1280.png",
-            nickname="testUser1",
-            is_owner=False,
-            introduction="I AM a Boy"
-        )
-        newUser.save()
 
-        cls.valid_markets = [
+class FavouriteMarketTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        User(
+            id=1,
+            email="customer1@gmail.com",
+            nickname="손님1",
+            is_owner=False,
+            profile="https://cdn.pixabay.com/photo/2015/03/10/17/23/youtube-667451_1280.png",
+        ).save()
+        User(
+            id=2,
+            email="customer2@gmail.com",
+            nickname="손님2",
+            is_owner=False,
+            profile="https://cdn.pixabay.com/photo/2015/03/10/17/23/youtube-667451_1280.png",
+        ).save()
+
+        markets = [
             {
                 "market_id": 1,
                 "market_name": "강남 시장",
@@ -53,7 +53,7 @@ class MarketTestApi(APITestCase):
             },
         ]
         print("Initialize Market")
-        for market in cls.valid_markets:
+        for market in markets:
             print(f'marketId={market["market_id"]} marketName={market["market_name"]}')
             newMarket = Market(
                 market_id=market["market_id"],
@@ -65,34 +65,26 @@ class MarketTestApi(APITestCase):
             )
             newMarket.save()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client = APIClient()
 
-    def test_market_list(self):
-        # given
-        url = "/markets/"
-        # when
-        response = self.client.get(url)
-        # then
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(3, len(response.data), msg="list test 성공")
-
-    def test_post_favourite_market(self):
+    def test_favourite_market(self):
         # given
         url_login = "/user/login/"
-        url_favourite = "/markets/favourite/"
-        request_email = {"email": "testuser@gmail.com"}
-        market_ids = {"market_id": [1, 2]}
+        url = "/markets/favourite/"
+
+        market_ids = [1, 2]
         # when
-        login_response = self.client.post(url_login, request_email)
+        response_login = self.client.post(url_login, {"email": "customer1@gmail.com"})
 
-        access_token = login_response.data["token"].get("access")
-
+        access_token = response_login.data["access_token"]
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
-        favourite_response = self.client.post(url_favourite, market_ids)
-        # then
-        user = User.objects.get(email=request_email["email"])
 
+        response = self.client.post(url, {"market_id": market_ids})
         # then
-        self.assertEqual(201, favourite_response.status_code)
-        self.assertEqual(2, len(user.user_favorite_markets.all()))
+
+        user = User.objects.get(email="customer1@gmail.com")
+        favouriteMarkets = user.user_favorite_markets.all()
+
+        self.assertEqual(2, len(favouriteMarkets))
+        self.assertEqual(201, response.status_code)
