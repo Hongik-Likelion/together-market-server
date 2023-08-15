@@ -2,6 +2,7 @@ from django.db import models
 
 from account.models import User
 from market.models import Market
+from products.models import Product
 from shop.models import Shop
 
 
@@ -14,9 +15,10 @@ class Board(models.Model):
     market_name = models.CharField(max_length=30)
     shop_name = models.CharField(max_length=20)
     content = models.CharField(max_length=500)
-    rating = models.IntegerField()
+    rating = models.IntegerField(blank=True)
     created_at = models.DateTimeField(auto_created=True)
     updated_at = models.DateTimeField(auto_now_add=True)
+    purchased_products = models.ManyToManyField(Product, related_name="board_purchased_products")
 
 
 class BoardPhoto(models.Model):
