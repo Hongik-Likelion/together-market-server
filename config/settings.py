@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "shop",
     "market",
     "products",
+    "boards"
 ]
 
 MIDDLEWARE = [
