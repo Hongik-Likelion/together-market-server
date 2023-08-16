@@ -84,3 +84,17 @@ class BlackListSerializer(serializers.ModelSerializer):
         BlackList(user_id=user.id, blocked_user_id=blocked_user_id).save()
         blocked_user = get_object_or_404(User, id=blocked_user_id)
         return blocked_user
+
+
+class CustomerUpdateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ("nickname", "introduction")
+
+    def update(self, instance, validated_data):
+        instance.nickname = validated_data.get("nickname")
+        instance.introduction = validated_data.get("introduction")
+        instance.save()
+
+        return instance

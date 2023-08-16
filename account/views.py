@@ -6,9 +6,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.generics import get_object_or_404
 
-from account.serializers import BlackListSerializer, LoginSerializer, RegisterSerializer
-
+from account.serializers import BlackListSerializer, LoginSerializer, RegisterSerializer, CustomerUpdateSerializer
+from market.models import Market
+from shop.serializers import ShopModifySerializer
 
 User = get_user_model()
 
@@ -88,10 +90,15 @@ Returns:
 def user_info_view(request):
     user = request.user
 
-    # 마켓 조회는 아직
-    # if not user.is_owner:
-    #     result = Market.objects.filter(favourite_markets__in=[user.id])
-    #     print(result)
+    if not user.is_owner:
+        favourite_markets = user.user_favorite_markets.all()
+        market = []
+        for favourite_market in favourite_markets:
+            market_data = {
+                "market_id": favourite_market.market_id,
+                "market_name": favourite_market.market_name
+            }
+            market.append(market_data)
 
     res = Response(
         data={
@@ -101,6 +108,7 @@ def user_info_view(request):
             "profile": user.profile,
             "introduction": user.introduction,
             "is_owner": user.is_owner,
+            "favourite_market": market
         },
         status=status.HTTP_200_OK,
     )
@@ -135,3 +143,57 @@ def user_block_view(request, user_id):
             },
             status=status.HTTP_200_OK,
         )
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def user_modify_view(request):
+    user = request.user
+    if user.is_owner:
+        change_data = request.data.copy()
+        shop = user.my_shop
+        introduction = change_data.pop("introduction")
+        shop_serializer = ShopModifySerializer(instance=shop, data=change_data)
+        if shop_serializer.is_valid():
+            shop_serializer.save()
+            user.introduction = introduction
+            user.save()
+            return Response(
+                data={
+                    "email": user.email,
+                    "nickname": user.nickname,
+                    "profile": user.profile,
+                    "introduction": user.introduction,
+                    "is_owner": user.is_owner
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        serializer = CustomerUpdateSerializer(instance=user, data=request.data)
+        change_data = request.data.copy()
+        favourite_markets = change_data.pop("favourite_markets")
+
+        market_id = favourite_markets[0]
+        market = get_object_or_404(Market, pk=market_id)
+        user.user_favorite_markets.clear()
+        user.user_favorite_markets.add(market)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                data={
+                    "email": user.email,
+                    "nickname": user.nickname,
+                    "profile": user.profile,
+                    "introduction": user.introduction,
+                    "is_owner": user.is_owner
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+

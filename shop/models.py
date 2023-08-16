@@ -8,7 +8,7 @@ from products.models import Product
 # Create your models here.
 class Shop(models.Model):
     shop_id = models.BigAutoField(primary_key=True, null=False, unique=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, related_name="my_shop", on_delete=models.CASCADE)
     market = models.ForeignKey(Market, on_delete=models.CASCADE)
     product = models.ManyToManyField(Product, related_name="shop_selling_product")
     favourites = models.ManyToManyField(User, related_name="user_shop_favourites")
