@@ -23,5 +23,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("user/", include("account.urls")),
     path("markets/", include(market.urls.urlpatterns)),
+    path("shop/", include("shop.urls")),
     path("products/", include("products.urls")),
 ]
