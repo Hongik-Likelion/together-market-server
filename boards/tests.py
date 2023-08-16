@@ -69,10 +69,19 @@ class TestBoard(APITestCase):
             introduction="testUser1"
         )
         print("USER initial")
+        cls.owner = User.objects.create(
+            id=2,
+            email="owner@example.com",
+            is_owner=True,
+            nickname="사장 1",
+            profile="https://cdn.pixabay.com/photo/2015/03/10/17/23/youtube-667451_1280.png",
+            introduction="testOwner"
+        )
+        print("Owner initial")
         cls.shop = Shop.objects.create(
             shop_id=1,
             market_id=cls.market,
-            user_id=cls.user,
+            user_id=cls.owner,
             shop_name="바삭마차",
             shop_address="마포구 서교동 120-3",
             selling_products="돈까스, 제육",
@@ -200,7 +209,7 @@ class TestBoard(APITestCase):
         self.assertEqual(self.shop.shop_name, response_retrieve.data.get("shop_info").get("shop_name"))
         self.assertEqual(2, len(response_retrieve.data.get("board_info").get("photo")))
         board = get_object_or_404(Board, pk=1)
-        self.assertEqual(board.updated_at, response_retrieve.data.get("board_info").get("updated_at"))
+        self.assertEqual(str(board.updated_at), response_retrieve.data.get("board_info").get("updated_at"))
 
     def test_list_read(self):
         # given
@@ -233,8 +242,8 @@ class TestBoard(APITestCase):
         # given
         url_login = "/user/login/"
         url_post = "/board/"
-        url_like = "/board/1/like"
-        url_unlike = "/board/1/unlike"
+        url_like = "/board/1/like/"
+        url_unlike = "/board/1/unlike/"
         url_retrieve = "/board/1/"
 
         request_login = {"email": "test@example.com"}
@@ -267,3 +276,86 @@ class TestBoard(APITestCase):
         response_retrieve_after = self.client.get(url_retrieve, data=None)
         self.assertEqual(response_retrieve_after.data["board_info"]["likes"], 0)
         self.assertEqual(response_retrieve_after.data["board_info"]["is_liked"], False)
+
+    def test_my_list(self):
+        # given
+        url_login = "/user/login/"
+        url_board = "/board/"
+        request_login = {"email": "test@example.com"}
+
+        response_login = self.client.post(url_login, request_login)
+        access_token = response_login.data.get("access_token")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
+
+        response_post = self.client.post(url_board, self.board_request)
+        print('게시글 등록')
+        print(response_post)
+
+        response_post_two = self.client.post(url_board, self.second_board)
+        print('게시글 등록2')
+        print(response_post_two)
+
+        response_my_list = self.client.get(url_board, None)
+        print(response_my_list)
+        print(response_my_list.data)
+
+        self.assertEqual(2, len(response_my_list.data))
+        self.assertEqual(response_my_list.data[0].get("shop_info"), response_my_list.data[1].get("shop_info"))
+        self.assertEqual(response_my_list.status_code, 200)
+
+    def test_my_review(self):
+        # given
+        url_login = "/user/login/"
+        url_board = "/board/"
+        url_review = "/board/review/"
+        customer_login = {"email": "test@example.com"}
+        owner_login = {"email": "owner@example.com"}
+        # 고객 로그인
+        response_customer_login = self.client.post(url_login, customer_login)
+        access_token = response_customer_login.data.get("access_token")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
+        # 고객이 가게에 대해 게시글 2개 등록
+        response_post = self.client.post(url_board, self.board_request)
+        print('게시글 등록')
+        print(response_post)
+
+        response_post_two = self.client.post(url_board, self.second_board)
+        print('게시글 등록2')
+        print(response_post_two)
+        # 사장으로 로그인
+        response_owner_login = self.client.post(url_login, owner_login)
+        access_token = response_owner_login.data.get("access_token")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
+        # 사장으로 가게에 대한 리뷰 받기
+        response_review = self.client.get(url_review, None)
+        print(response_review.data)
+        self.assertEqual(response_review.status_code, 200)
+        self.assertEqual(2, len(response_review.data))
+
+    def test_report(self):
+        # given
+        url_login = "/user/login/"
+        url_post = "/board/"
+        url_list = "/board/?market_id=1"
+        url_report = "/board/1/report/"
+
+        request_login = {"email": "test@example.com"}
+
+        response_login = self.client.post(url_login, request_login)
+        access_token = response_login.data.get("access_token")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
+
+        response_post = self.client.post(url_post, self.board_request)
+        print('게시글 등록')
+        print(response_post)
+
+        response_post_two = self.client.post(url_post, self.second_board)
+        print('게시글 등록2')
+        print(response_post_two)
+
+        board = get_object_or_404(Board, pk=1)
+
+        response_report = self.client.patch(url_report, None)
+        print(response_report)
+        self.assertEqual(1, board.get_report_count())
+        self.assertEqual(200, response_report.status_code)
