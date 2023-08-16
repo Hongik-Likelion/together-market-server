@@ -74,3 +74,18 @@ class ShopDetailInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shop
         fields = "__all__"
+
+
+class ShopModifySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Shop
+        fields = ("shop_name", "opening_time", "closing_time")
+
+    def update(self, instance, validated_data):
+        instance.shop_name = validated_data.get("shop_name")
+        instance.opening_time = validated_data.get("opening_time")
+        instance.closing_time = validated_data.get("closing_time")
+        instance.save()
+
+        return instance

@@ -85,6 +85,23 @@ class AccountLoginTest(APITestCase):
             "profile": "https://cdn.pixabay.com/photo/2015/03/10/17/23/youtube-667451_1280.png",
         }
 
+        Market.objects.create(
+            market_id=1,
+            market_name="강남시장",
+            street_address="서울특별시 강남구 압구정로 2길 46",
+            postal_address="서울특별시 강남구 신사동 510-11",
+            has_toilet=True,
+            has_parking=True
+        )
+        Market.objects.create(
+            market_id=2,
+            market_name="방신 시장",
+            street_address="서울특별시 강남구 압구정로29길 72-1",
+            postal_address="서울특별시 강남구 압구정동 454",
+            has_toilet=False,
+            has_parking=True
+        )
+
         # when
         response_sign_up = self.client.post(url_sign_up, request_customer)
         response_login = self.client.post(url_login, request_200)
@@ -92,10 +109,15 @@ class AccountLoginTest(APITestCase):
         access_token = response_login.data.get("access_token")
 
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
+
+        self.client.post(path="/markets/favourite/", data={"market_id": [1, 2]})
+
         response = self.client.get(url_user_info)
+        print(response.data)
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(response.data["email"], request_200["email"])
+        self.assertEqual(len(response.data.get("favourite_market")), 2)
 
         self.client.credentials(HTTP_AUTHORIZATION="Bearer ")
         response_401 = self.client.get(url_user_info)
