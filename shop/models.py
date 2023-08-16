@@ -9,7 +9,7 @@ from market.models import Market
 class Shop(models.Model):
     shop_id = models.BigAutoField(primary_key=True, null=False, unique=True)
     market_id = models.ForeignKey(Market, on_delete=models.CASCADE)
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
     shop_name = models.CharField(max_length=20)
     shop_address = models.CharField(max_length=50)
     selling_products = models.CharField(max_length=30)

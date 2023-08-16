@@ -7,7 +7,8 @@ from account.models import User
 from boards.models import BoardPhoto, Board
 from boards.serializers import BoardOwnerSerializer, BoardCustomerSerializer, SingleBoardOwnerSerializer, \
     SingleBoardCustomerSerializer, BoardReadSerializer, UserReadSerializer, ShopReadSerializer, MixValidSerializer, \
-    BoardReadListSerializer, MixValidListSerializer
+    BoardReadListSerializer, MixValidListSerializer, MyShopSerializer, MyBoardSerializer, MyMixedSerializer, \
+    ReviewBoardSerializer, ReviewUserSerializer, ReviewSerializer
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -18,7 +19,7 @@ from shop.models import Shop
 @api_view(["POST", "GET"])
 @permission_classes([IsAuthenticated])
 def post_board_view(request):
-    if request.method == "POST":
+    if request.method == "POST":  # 게시글 생성
         user = request.user
         data = request.data.copy()
         data["user_id"] = user.id
@@ -43,41 +44,70 @@ def post_board_view(request):
 
     if request.method == "GET":
         market_id = request.GET.get("market_id")
-        boards = Board.objects.filter(market_id=market_id)
-        data = []
-        for board in boards:
-            # 게시글 상세 보기
-            board = get_object_or_404(Board, pk=board.board_id)
-            user = get_object_or_404(User, pk=request.user.id)
-            shop = get_object_or_404(Shop, pk=board.shop_id.shop_id)
+        if market_id is not None:  # 시장에 대한 게시글 전체 조회
+            boards = Board.objects.filter(market_id=market_id)
+            data = []
+            for board in boards:
 
-            board_serializer = BoardReadListSerializer(instance=board)
-            user_serializer = UserReadSerializer(instance=user)
-            shop_serializer = ShopReadSerializer(instance=shop)
+                if board.get_report_count() > 4:  # 신고 누적 조회
+                    continue
 
-            res_data = {
-                "user_info": user_serializer.data,
-                "shop_info": shop_serializer.data,
-                "board_info": board_serializer.data
-            }
-            res_data["board_info"]["updated_at"] = board.updated_at
-            mixSerializer = MixValidListSerializer(data=res_data)
-            likes = board.likes.all().count()  # 좋아요 수
-            if user.liked_boards.filter(board_id=board.board_id).exists():  # 유저가 좋아요 했는지 확인
-                is_liked = True
-            else:
-                is_liked = False
+                board = get_object_or_404(Board, pk=board.board_id)
+                user = get_object_or_404(User, pk=request.user.id)
+                shop = get_object_or_404(Shop, pk=board.shop_id.shop_id)
 
-            res_data["board_info"]["likes"] = likes
-            res_data["board_info"]["is_liked"] = is_liked
-            res_data["board_info"]["photo"] = board.photo.first().image
+                board_serializer = BoardReadListSerializer(instance=board)
+                user_serializer = UserReadSerializer(instance=user)
+                shop_serializer = ShopReadSerializer(instance=shop)
 
-            if mixSerializer.is_valid():
-                data.append(res_data)
-            else:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                res_data = {
+                    "user_info": user_serializer.data,
+                    "shop_info": shop_serializer.data,
+                    "board_info": board_serializer.data
+                }
 
-        return Response(data=data, status=status.HTTP_200_OK)
+                mixSerializer = MixValidListSerializer(data=res_data)
+                likes = board.get_like_count()  # 좋아요 수
+                if user.liked_boards.filter(board_id=board.board_id).exists():  # 유저가 좋아요 했는지 확인
+                    is_liked = True
+                else:
+                    is_liked = False
+
+                res_data["board_info"]["likes"] = likes
+                res_data["board_info"]["is_liked"] = is_liked
+                res_data["board_info"]["photo"] = board.photo.first().image
+
+                if mixSerializer.is_valid():
+                    data.append(res_data)
+                else:
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
+
+            return Response(data=data, status=status.HTTP_200_OK)
+
+        else:  # 나의 게시글 조회
+            user = request.user
+            boards = Board.objects.filter(user_id=user.id)
+            my_data = []
+
+            for board in boards:
+                shop = get_object_or_404(Shop, pk=board.shop_id.shop_id)
+                shop_serializer = MyShopSerializer(instance=shop)
+                board_serializer = MyBoardSerializer(instance=board)
+
+                res_data = {
+                    "shop_info": shop_serializer.data,
+                    "board_info": board_serializer.data,
+                }
+
+                res_data["board_info"]["photo"] = board.photo.first().image
+                if MyMixedSerializer(data=res_data).is_valid(raise_exception=True):
+                    my_data.append(res_data)
+                else:
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
+
+            return Response(data=my_data, status=status.HTTP_200_OK)
+
+
 
 
 @api_view(["PUT", "DELETE", "GET"])
@@ -124,9 +154,14 @@ def single_board_view(request, board_id):
 
     if request.method == "GET":
         # 게시글 상세 보기
+
         board = get_object_or_404(Board, pk=board_id)
         user = get_object_or_404(User, pk=request.user.id)
         shop = get_object_or_404(Shop, pk=board.shop_id.shop_id)
+
+        if board.get_report_count() > 4:  # 신고 누적 조회
+            return Response(data={"message: 신고 누적된 게시물"}, status=status.HTTP_400_BAD_REQUEST)
+
 
         board_serializer = BoardReadSerializer(instance=board)
         user_serializer = UserReadSerializer(instance=user)
@@ -137,9 +172,9 @@ def single_board_view(request, board_id):
             "shop_info": shop_serializer.data,
             "board_info": board_serializer.data
         }
-        res_data["board_info"]["updated_at"] = board.updated_at
+
         mixSerializer = MixValidSerializer(data=res_data)
-        likes = board.likes.all().count()
+        likes = board.get_like_count()
         if user in board.likes.all():
             is_liked = True
         else:
@@ -171,3 +206,53 @@ def board_unlike_view(request, board_id):
     board.likes.remove(user)
 
     return Response(data={"message": "좋아요 취소 성공"}, status=status.HTTP_200_OK)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def board_report_view(request, board_id):
+    board = get_object_or_404(Board, pk=board_id)
+    board.reports.add(request.user)
+
+    return Response(data={"message": "신고 성공"}, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def board_review_view(request):
+    shop = get_object_or_404(Shop, user_id=request.user.id)
+    boards = Board.objects.filter(shop_id=shop.shop_id)
+
+    review_data = []
+    for board in boards:
+        user = get_object_or_404(User, pk=board.user_id.id)
+        if user == request.user:
+            continue
+
+        like_count = board.get_like_count()
+
+        if request.user in board.likes.all():
+            is_liked = True
+        else:
+            is_liked = False
+
+        board_serializer = ReviewBoardSerializer(instance=board)
+        user_serializer = ReviewUserSerializer(instance=user)
+        data = {
+            'user_info': user_serializer.data,
+            'board_info': board_serializer.data
+        }
+        data["board_info"]["like_count"] = like_count
+        data["board_info"]["is_liked"] = like_count
+        data["board_info"]["photo"] = str(BoardPhoto.objects.filter(board_id=board.board_id).first())
+
+        review_serializer = ReviewSerializer(data=data)
+
+        if review_serializer.is_valid():
+            review_data.append(data)
+        else:
+            print(review_serializer.errors)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(data=review_data, status=status.HTTP_200_OK)
+

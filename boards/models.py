@@ -20,6 +20,13 @@ class Board(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     purchased_products = models.ManyToManyField(Product, related_name="board_purchased_products")
     likes = models.ManyToManyField(User, related_name="liked_boards", blank=True)
+    reports = models.ManyToManyField(User, related_name="reported_boards", blank=True)
+
+    def get_report_count(self):
+        return self.reports.all().count()
+
+    def get_like_count(self):
+        return self.likes.all().count()
 
 
 class BoardPhoto(models.Model):
@@ -28,4 +35,4 @@ class BoardPhoto(models.Model):
     image = models.CharField(max_length=2750)
 
     def __str__(self) -> str:
-        return f"image={self.image}, board={self.board}"
+        return f"{self.image}"

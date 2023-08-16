@@ -93,14 +93,17 @@ class UserReadSerializer(serializers.ModelSerializer):
 
 
 class PhotoSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = BoardPhoto
         fields = ("image",)
 
 
+
 class BoardReadSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
     photo = PhotoSerializer(many=True)
+    updated_at = serializers.CharField(max_length=15, read_only=True)
     class Meta:
         model = Board
         fields = ("rating", "photo", "content", "updated_at")
@@ -108,6 +111,7 @@ class BoardReadSerializer(serializers.ModelSerializer):
 
 class BoardReadListSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    updated_at = serializers.CharField(max_length=15, read_only=True)
 
     class Meta:
         model = Board
@@ -131,3 +135,44 @@ class MixValidListSerializer(serializers.Serializer):
     board_info = BoardReadListSerializer()
     shop_info = ShopReadSerializer()
     user_info = UserReadSerializer()
+
+
+class MyShopSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shop
+        fields = ("shop_name",)
+
+
+class MyBoardSerializer(serializers.ModelSerializer):
+    board_id = serializers.IntegerField()
+    updated_at = serializers.CharField(max_length=15, read_only=True)
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    class Meta:
+        model = Board
+        fields = ("board_id", "updated_at", "content", "rating")
+
+
+class MyMixedSerializer(serializers.Serializer):
+    shop_info = MyShopSerializer()
+    board_info = MyBoardSerializer()
+
+
+class ReviewUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("nickname",)
+
+
+class ReviewBoardSerializer(serializers.ModelSerializer):
+    board_id = serializers.IntegerField()
+    updated_at = serializers.CharField(max_length=15, read_only=True)
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+    class Meta:
+        model = Board
+        fields = ("board_id", "updated_at", "rating", "content")
+
+
+
+class ReviewSerializer(serializers.Serializer):
+    user_info = ReviewUserSerializer()
+    board_info = ReviewBoardSerializer()
