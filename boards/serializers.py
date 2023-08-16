@@ -8,7 +8,52 @@ from products.models import Product
 from shop.models import Shop
 
 
-class BoardSerializer(serializers.ModelSerializer):
+class SingleCreateBoardSerializer(serializers.ModelSerializer):  # 게시글 단일 수정 위한 serializer
+    photo = serializers.ListSerializer(child=serializers.CharField(max_length=2750, allow_blank=True))
+
+    class Meta:
+        model = Board
+        fields = ("market_name", "shop_name", "purchased_products", "content")
+
+    def update(self, instance, validated_data):
+        purchased_products_data = validated_data.pop('purchased_products', [])
+
+        instance.purchased_products.clear()
+        for product_id in purchased_products_data:
+            instance.purchased_products.add(product_id)
+
+        instance.market_name = validated_data.get("market_name", instance.market_name)
+        instance.shop_name = validated_data.get("shop_name", instance.shop_name)
+        instance.content = validated_data.get("content", instance.content)
+        instance.save()
+
+        return instance
+
+
+class SingleBoardCustomerSerializer(SingleCreateBoardSerializer):
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+
+    class Meta(SingleCreateBoardSerializer.Meta):
+        fields = SingleCreateBoardSerializer.Meta.fields + ("rating",)
+
+    def update(self, instance, validated_data):
+        rating = validated_data.pop('rating', None)
+        instance = super().update(instance, validated_data)
+
+        # Update the rating if it's provided
+        if rating is not None:
+            instance.rating = rating
+            instance.save()
+
+        return instance
+
+
+class SingleBoardOwnerSerializer(SingleCreateBoardSerializer):
+    class Meta(SingleCreateBoardSerializer.Meta):
+        pass
+
+
+class BoardCreateSerializer(serializers.ModelSerializer):  # 게시글 생성 위한 serializer
     user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     market_id = serializers.PrimaryKeyRelatedField(queryset=Market.objects.all())
     shop_id = serializers.PrimaryKeyRelatedField(queryset=Shop.objects.all())
@@ -29,12 +74,60 @@ class BoardSerializer(serializers.ModelSerializer):
         return board
 
 
-class BoardCustomerSerializer(BoardSerializer):
+class BoardCustomerSerializer(BoardCreateSerializer):
     rating = serializers.IntegerField(min_value=1, max_value=5)
-    class Meta(BoardSerializer.Meta):
-        fields = BoardSerializer.Meta.fields + ("rating",)
+    class Meta(BoardCreateSerializer.Meta):
+        fields = BoardCreateSerializer.Meta.fields + ("rating",)
 
 
-class BoardOwnerSerializer(BoardSerializer):
-    class Meta(BoardSerializer.Meta):
+class BoardOwnerSerializer(BoardCreateSerializer):
+    class Meta(BoardCreateSerializer.Meta):
         pass
+
+
+class UserReadSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+    class Meta:
+        model = User
+        fields = ("id", "is_owner", "nickname", "profile")
+
+
+class PhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BoardPhoto
+        fields = ("image",)
+
+
+class BoardReadSerializer(serializers.ModelSerializer):
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    photo = PhotoSerializer(many=True)
+    class Meta:
+        model = Board
+        fields = ("rating", "photo", "content", "updated_at")
+
+
+class BoardReadListSerializer(serializers.ModelSerializer):
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+
+    class Meta:
+        model = Board
+        fields = ("rating", "content", "updated_at")
+
+
+class ShopReadSerializer(serializers.ModelSerializer):
+    shop_id = serializers.IntegerField()
+    class Meta:
+        model = Shop
+        fields = ("shop_id", "shop_name", "rating")
+
+
+class MixValidSerializer(serializers.Serializer):
+    board_info = BoardReadSerializer()
+    shop_info = ShopReadSerializer()
+    user_info = UserReadSerializer()
+
+
+class MixValidListSerializer(serializers.Serializer):
+    board_info = BoardReadListSerializer()
+    shop_info = ShopReadSerializer()
+    user_info = UserReadSerializer()

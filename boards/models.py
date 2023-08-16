@@ -19,6 +19,7 @@ class Board(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     purchased_products = models.ManyToManyField(Product, related_name="board_purchased_products")
+    likes = models.ManyToManyField(User, related_name="liked_boards", blank=True)
 
 
 class BoardPhoto(models.Model):
