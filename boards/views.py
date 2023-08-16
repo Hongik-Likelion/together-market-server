@@ -23,7 +23,11 @@ def post_board_view(request):
         user = request.user
         data = request.data.copy()
         data["user_id"] = user.id
-        photo_data = data.pop("photo")
+
+        try:  # 사진 있으면 따로 데이터 빼줌
+            photo_data = data.pop("photo")
+        except:
+            photo_data = None
 
         get_object_or_404(Market, pk=request.data.get("market_id"))
         get_object_or_404(Shop, pk=request.data.get("shop_id"))
@@ -34,10 +38,11 @@ def post_board_view(request):
             serializer = BoardCustomerSerializer(data=data)
         if serializer.is_valid():
             board = serializer.save()
-            for image in photo_data:
-                BoardPhoto.objects.create(board_id=board.board_id, image=image)
             response_data = serializer.data.copy()
-            response_data["photo"] = photo_data
+            if photo_data is not None:  # 사진 있으면 따로 연결된 객체 생성
+                for image in photo_data:
+                    BoardPhoto.objects.create(board_id=board.board_id, image=image)
+                response_data["photo"] = photo_data
             return Response(data=response_data, status=status.HTTP_201_CREATED)
         else:
             return Response(data={"message": "요청 형식이 잘못됨"}, status=status.HTTP_400_BAD_REQUEST)
@@ -75,7 +80,8 @@ def post_board_view(request):
 
                 res_data["board_info"]["likes"] = likes
                 res_data["board_info"]["is_liked"] = is_liked
-                res_data["board_info"]["photo"] = board.photo.first().image
+                if board.photo.first() is not None:
+                    res_data["board_info"]["photo"] = str(board.photo.first())
 
                 if mixSerializer.is_valid():
                     data.append(res_data)
@@ -99,7 +105,9 @@ def post_board_view(request):
                     "board_info": board_serializer.data,
                 }
 
-                res_data["board_info"]["photo"] = board.photo.first().image
+                if board.photo.first() is not None:  # 만약 게시글에 등록한 사진이 있으면 첫번째만 추가
+                    res_data["board_info"]["photo"] = board.photo.first().image
+
                 if MyMixedSerializer(data=res_data).is_valid(raise_exception=True):
                     my_data.append(res_data)
                 else:
@@ -117,7 +125,11 @@ def single_board_view(request, board_id):
         # 게시글 수정
         data = request.data.copy()
         data["board_id"] = board_id
-        photo_data = data.pop("photo")
+        try:
+            photo_data = data.pop("photo")
+        except:
+            photo_data = None
+
         board = get_object_or_404(Board, pk=board_id)  # board 객체 찾기, 없으면 404
 
         if request.user.is_owner:  # user 유형에 따라 분기
@@ -125,22 +137,31 @@ def single_board_view(request, board_id):
         else:
             serializer = SingleBoardCustomerSerializer(board, data=data)
 
-        photos = BoardPhoto.objects.filter(board_id=board_id)  # 게시글 사진들
+        photos = board.photo.all()  # 게시글 사진들
 
         if serializer.is_valid():  # serializer 이용해 valid
             serializer.save()
-            for photo, image in zip(photos, photo_data):  # 원래 있던 사진 교체
-                photo.image = image
-                photo.save()
-                photo_data.remove(image)
+            if photo_data is not None:  # 교체하려는 사진이 있는 경우
+                for photo in photos:  # 원래 있던 사진 교체
+                    try:
+                        photo.image = photo_data.pop(0)
+                        photo.save()
+                    except:  # 원래 있던 사진이 더 많으면 삭제
+                        photo.delete()
 
-            for image in photo_data:  # 원래 있었던 사진 수 보다 더 추가 할 때
-                BoardPhoto.objects.create(board_id=board.board_id, image=image)
+                if photo_data is not None:  # 교체 사진이 더 많은 경우
+                    for image in photo_data:  # 원래 있었던 사진 수 보다 더 추가 할 때
+                        BoardPhoto.objects.create(board_id=board.board_id, image=image)
+                else:  # 갯수 딱 맞음
+                    pass
 
-            new_photos = BoardPhoto.objects.filter(board_id=board_id)  # 응답에 photo 추가
-            photo_string = [photo.image for photo in new_photos]
-            response_data = serializer.data.copy()
-            response_data['photo'] = photo_string
+                new_photos = BoardPhoto.objects.filter(board_id=board_id)  # 응답에 photo 추가
+                photo_string = [photo.image for photo in new_photos]
+                response_data = serializer.data.copy()
+                response_data['photo'] = photo_string
+            else:  # 사진을 아예 안 넣었을 때
+                photos.all().delete()
+                response_data = serializer.data.copy()
 
             return Response(data=response_data, status=status.HTTP_200_OK)
         else:  # serializer 로 넘어온 데이터 이상할 때
@@ -244,7 +265,8 @@ def board_review_view(request):
         }
         data["board_info"]["like_count"] = like_count
         data["board_info"]["is_liked"] = like_count
-        data["board_info"]["photo"] = str(BoardPhoto.objects.filter(board_id=board.board_id).first())
+        if BoardPhoto.objects.filter(board_id=board.board_id).first() is not None:
+            data["board_info"]["photo"] = str(BoardPhoto.objects.filter(board_id=board.board_id).first())
 
         review_serializer = ReviewSerializer(data=data)
 

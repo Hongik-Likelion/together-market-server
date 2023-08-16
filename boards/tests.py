@@ -23,13 +23,12 @@ class TestBoard(APITestCase):
             "content": "맛있어요",
             "rating": 4
         }
-        cls.second_board = {
+        cls.second_board_no_photo = {
             "market_id": 1,
             "shop_id": 1,
             "market_name": "강남시장",
             "shop_name": "바삭마차",
             "purchased_products": [3, 2],
-            "photo": ["이미지3", "이미지4"],
             "content": "별로에요",
             "rating": 2
         }
@@ -80,8 +79,8 @@ class TestBoard(APITestCase):
         print("Owner initial")
         cls.shop = Shop.objects.create(
             shop_id=1,
-            market_id=cls.market,
-            user_id=cls.owner,
+            market_id=cls.market.market_id,
+            user_id=cls.owner.id,
             shop_name="바삭마차",
             shop_address="마포구 서교동 120-3",
             selling_products="돈까스, 제육",
@@ -131,11 +130,14 @@ class TestBoard(APITestCase):
 
         response_post = self.client.post(url_post, self.board_request)
         response_post_invalid = self.client.post(url_post, self.invalid_request)
+        response_post_no_photo = self.client.post(url_post, self.second_board_no_photo)
 
         self.assertEqual(201, response_post.status_code)
         self.assertEqual(2, len(response_post.data.get("photo")))
         self.assertEqual(404, response_post_invalid.status_code)
+        self.assertEqual(201, response_post_no_photo.status_code)
         print(response_post.data)
+        print(response_post_no_photo.data)
 
     def test_update(self):
         # given
@@ -150,11 +152,8 @@ class TestBoard(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
 
         response_post = self.client.post(url_post, self.board_request)
-        response_post_invalid = self.client.post(url_post, self.invalid_request)
-        self.assertEqual(201, response_post.status_code)
-        self.assertEqual(2, len(response_post.data.get("photo")))
-        self.assertEqual(404, response_post_invalid.status_code)
         print(response_post.data)
+        self.assertEqual(201, response_post.status_code)
 
         response_update = self.client.put(url_update, self.update_request)
         print(response_update)
@@ -203,13 +202,27 @@ class TestBoard(APITestCase):
         print('게시글 등록')
         print(response_post)
 
+        response_post_no_photo = self.client.post(url_post, self.second_board_no_photo)
+        print('게시글 등록2')
+        print(response_post_no_photo)
+
         response_retrieve = self.client.get(url_retrieve, data=None)
         print(response_retrieve.data)
+
+        response_retrieve_no_photo = self.client.get("/board/2/", data=None)
+        print(response_retrieve_no_photo.data)
+
         self.assertEqual(self.user.id, response_retrieve.data["user_info"]["id"])
         self.assertEqual(self.shop.shop_name, response_retrieve.data.get("shop_info").get("shop_name"))
         self.assertEqual(2, len(response_retrieve.data.get("board_info").get("photo")))
         board = get_object_or_404(Board, pk=1)
         self.assertEqual(str(board.updated_at), response_retrieve.data.get("board_info").get("updated_at"))
+
+        self.assertEqual(self.user.id, response_retrieve_no_photo.data["user_info"]["id"])
+        self.assertEqual(self.shop.shop_name, response_retrieve_no_photo.data.get("shop_info").get("shop_name"))
+        self.assertEqual(0, len(response_retrieve_no_photo.data.get("board_info").get("photo")))
+        board = get_object_or_404(Board, pk=2)
+        self.assertEqual(str(board.updated_at), response_retrieve_no_photo.data.get("board_info").get("updated_at"))
 
     def test_list_read(self):
         # given
@@ -226,7 +239,7 @@ class TestBoard(APITestCase):
         print('게시글 등록')
         print(response_post)
 
-        response_post_two = self.client.post(url_post, self.second_board)
+        response_post_two = self.client.post(url_post, self.second_board_no_photo)
         print('게시글 등록2')
         print(response_post_two)
 
@@ -291,7 +304,7 @@ class TestBoard(APITestCase):
         print('게시글 등록')
         print(response_post)
 
-        response_post_two = self.client.post(url_board, self.second_board)
+        response_post_two = self.client.post(url_board, self.second_board_no_photo)
         print('게시글 등록2')
         print(response_post_two)
 
@@ -319,7 +332,7 @@ class TestBoard(APITestCase):
         print('게시글 등록')
         print(response_post)
 
-        response_post_two = self.client.post(url_board, self.second_board)
+        response_post_two = self.client.post(url_board, self.second_board_no_photo)
         print('게시글 등록2')
         print(response_post_two)
         # 사장으로 로그인
@@ -349,7 +362,7 @@ class TestBoard(APITestCase):
         print('게시글 등록')
         print(response_post)
 
-        response_post_two = self.client.post(url_post, self.second_board)
+        response_post_two = self.client.post(url_post, self.second_board_no_photo)
         print('게시글 등록2')
         print(response_post_two)
 
