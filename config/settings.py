@@ -123,8 +123,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=15),
     # refresh_token 이 새로운 상태로 재발급 되도록 설정
     "ROTATE_REFRESH_TOKENS": True,
     # 재발급된 refresh_token은 더 이상 사용할 수 없도록 유지
