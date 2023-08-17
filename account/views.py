@@ -8,8 +8,10 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import get_object_or_404
 
-from account.serializers import BlackListSerializer, LoginSerializer, RegisterSerializer, CustomerUpdateSerializer
+from account.serializers import BlackListSerializer, LoginSerializer, RegisterSerializer, CustomerUpdateSerializer, \
+    OwnerShopInfoSerializer
 from market.models import Market
+from shop.models import Shop
 from shop.serializers import ShopModifySerializer
 
 User = get_user_model()
@@ -89,6 +91,14 @@ Returns:
 @permission_classes([IsAuthenticated])
 def user_info_view(request):
     user = request.user
+    user_data = {
+        "user_id": user.id,
+        "email": user.email,
+        "nickname": user.nickname,
+        "profile": user.profile,
+        "introduction": user.introduction,
+        "is_owner": user.is_owner,
+    }
 
     if not user.is_owner:
         favourite_markets = user.user_favorite_markets.all()
@@ -100,20 +110,42 @@ def user_info_view(request):
             }
             market.append(market_data)
 
-    res = Response(
-        data={
+        res = Response(
+            data={
+                "user_id": user.id,
+                "email": user.email,
+                "nickname": user.nickname,
+                "profile": user.profile,
+                "introduction": user.introduction,
+                "is_owner": user.is_owner,
+                "favourite_market": market
+            },
+            status=status.HTTP_200_OK,
+        )
+        return res
+
+    else:
+        shop = user.my_shop
+        shop_serializer = OwnerShopInfoSerializer(instance=shop)
+        res = Response(data={
             "user_id": user.id,
             "email": user.email,
             "nickname": user.nickname,
             "profile": user.profile,
             "introduction": user.introduction,
             "is_owner": user.is_owner,
-            "favourite_market": market
-        },
-        status=status.HTTP_200_OK,
-    )
-
-    return res
+            "market": {
+                "market_id": shop.market.market_id,
+                "shop_name": shop_serializer.data["shop_name"],
+                "shop_address": shop_serializer.data["shop_address"],
+                "selling_products": shop_serializer.data["selling_products"],
+                "opening_time": shop_serializer.data["opening_time"],
+                "closing_time": shop_serializer.data["closing_time"],
+                "opening_frequency": shop_serializer.data["opening_frequency"],
+                "product": shop_serializer.data["product"],
+            }
+        }, status=status.HTTP_200_OK)
+        return res
 
 
 """사용자 차단 뷰

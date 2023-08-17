@@ -3,6 +3,7 @@ from rest_framework.authentication import get_user_model
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import get_object_or_404
 from account.models import BlackList
+from shop.models import Shop
 
 User = get_user_model()
 
@@ -98,3 +99,10 @@ class CustomerUpdateSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class OwnerShopInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shop
+        fields = ("shop_name", "shop_address", "selling_products", "opening_time", "closing_time",
+                  "opening_frequency", "product")
