@@ -79,8 +79,8 @@ class TestBoard(APITestCase):
         print("Owner initial")
         cls.shop = Shop.objects.create(
             shop_id=1,
-            market_id=cls.market.market_id,
-            user_id=cls.owner.id,
+            market_id=1,
+            user_id=2,
             shop_name="바삭마차",
             shop_address="마포구 서교동 120-3",
             selling_products="돈까스, 제육",
