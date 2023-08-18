@@ -165,6 +165,8 @@ class ShopListTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + access_token)
 
         response_200 = self.client.get(url)
+
+        print(response_200.data)
         # then
         self.assertEqual(200, response_200.status_code)
         self.assertEqual(2, len(response_200.data))

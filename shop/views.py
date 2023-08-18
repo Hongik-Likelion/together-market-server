@@ -5,6 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
+
+from boards.models import Board
+from market.models import Market
 from shop.models import Shop
 
 from shop.serializers import (
@@ -55,10 +58,31 @@ class ShopView(APIView):
             )
 
             print(f"shop_ids={shop_ids}")
+            res_data = []
+            for shop_id in shop_ids:
+                shop = get_object_or_404(Shop, pk=shop_id)
+                serializer = ShopDetailInfoSerializer(instance=shop)
+                market_id = serializer.data["market"]
+                market = get_object_or_404(Market, market_id=market_id)
 
-            shops = Shop.objects.filter(shop_id__in=shop_ids)
-            serializer = ShopDetailInfoSerializer(shops, many=True)
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
+                boards = Board.objects.filter(shop_id=shop.shop_id)  # 평균 별점 구하기
+                avg_rating = 0
+                if boards.exists():
+                    for board in boards:
+                        board.rating += avg_rating
+                    avg_rating = avg_rating/boards.count()
+
+                data = {
+                    "market_name": market.market_name,
+                    "shop_name": serializer.data["shop_name"],
+                    "shop_address": serializer.data["shop_address"],
+                    "opening_time": serializer.data["opening_time"],
+                    "closing_time": serializer.data["closing_time"],
+                    "average_rating": avg_rating,
+                    "is_liked": True,
+                }
+                res_data.append(data)
+            return Response(data=res_data, status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
