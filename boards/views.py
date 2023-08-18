@@ -80,6 +80,9 @@ def post_board_view(request):
 
                 res_data["board_info"]["likes"] = likes
                 res_data["board_info"]["is_liked"] = is_liked
+
+                res_data["board_info"]["updated_at"] = board.updated_at.strftime("%Y.%m.%d")
+
                 if board.photo.first() is not None:
                     res_data["board_info"]["photo"] = str(board.photo.first())
 
@@ -104,6 +107,7 @@ def post_board_view(request):
                     "shop_info": shop_serializer.data,
                     "board_info": board_serializer.data,
                 }
+                res_data["board_info"]["updated_at"] = board.updated_at.strftime("%Y.%m.%d")
 
                 if board.photo.first() is not None:  # 만약 게시글에 등록한 사진이 있으면 첫번째만 추가
                     res_data["board_info"]["photo"] = board.photo.first().image
@@ -201,6 +205,7 @@ def single_board_view(request, board_id):
         else:
             is_liked = False
 
+        res_data["board_info"]["updated_at"] = board.updated_at.strftime("%Y.%m.%d")
         res_data["board_info"]["likes"] = likes
         res_data["board_info"]["is_liked"] = is_liked
 
@@ -263,8 +268,9 @@ def board_review_view(request):
             'user_info': user_serializer.data,
             'board_info': board_serializer.data
         }
+        data["board_info"]["updated_at"] = board.updated_at.strftime("%Y.%m.%d")
         data["board_info"]["like_count"] = like_count
-        data["board_info"]["is_liked"] = like_count
+        data["board_info"]["is_liked"] = is_liked
         if BoardPhoto.objects.filter(board_id=board.board_id).first() is not None:
             data["board_info"]["photo"] = str(BoardPhoto.objects.filter(board_id=board.board_id).first())
 
