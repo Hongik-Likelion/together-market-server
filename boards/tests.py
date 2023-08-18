@@ -4,7 +4,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from account.models import User
 from boards.models import BoardPhoto, Board
-from boards.serializers import BoardCreateSerializer, BoardCustomerSerializer
+from boards.serializers import BoardCreateSerializer, BoardCreateSerializer
 from market.models import Market
 from products.models import Product
 from shop.models import Shop
@@ -101,7 +101,7 @@ class TestBoard(APITestCase):
     def test_serializer_validation(self):
         data = self.board_request.copy()
         data["user_id"] = 1
-        serializer = BoardCustomerSerializer(data=data)
+        serializer = BoardCreateSerializer(data=data)
         data.pop("photo", [])
         self.assertEqual(True, serializer.is_valid())
 
@@ -109,7 +109,7 @@ class TestBoard(APITestCase):
         data = self.board_request
         data["user_id"] = 1
         photo_data = data.pop("photo", [])
-        serializer = BoardCustomerSerializer(data=data)
+        serializer = BoardCreateSerializer(data=data)
 
         if serializer.is_valid(raise_exception=True):
             board = serializer.save()
@@ -138,6 +138,8 @@ class TestBoard(APITestCase):
         self.assertEqual(201, response_post_no_photo.status_code)
         print(response_post.data)
         print(response_post_no_photo.data)
+        shop = get_object_or_404(Shop, pk=1)
+        self.assertEqual(3.0, shop.rating)
 
     def test_update(self):
         # given

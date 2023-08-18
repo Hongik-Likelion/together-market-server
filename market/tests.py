@@ -1,4 +1,3 @@
-from django.test import TestCase
 from rest_framework.test import APIClient, APITestCase
 from rest_framework.authentication import get_user_model
 
@@ -6,8 +5,9 @@ from market.models import Market
 
 User = get_user_model()
 
+
 # Create your tests here.
-class MarketTestApi(APITestCase):
+class TestMarketApi(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.valid_user = {

@@ -15,7 +15,7 @@ class Board(models.Model):
     market_name = models.CharField(max_length=30)
     shop_name = models.CharField(max_length=20)
     content = models.CharField(max_length=500)
-    rating = models.IntegerField(blank=True)
+    rating = models.IntegerField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     purchased_products = models.ManyToManyField(Product, related_name="board_purchased_products")

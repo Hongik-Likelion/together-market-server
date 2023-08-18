@@ -1,14 +1,13 @@
-from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import get_object_or_404
 
 from account.models import User
 from boards.models import BoardPhoto, Board
-from boards.serializers import BoardOwnerSerializer, BoardCustomerSerializer, SingleBoardOwnerSerializer, \
+from boards.serializers import SingleBoardOwnerSerializer, \
     SingleBoardCustomerSerializer, BoardReadSerializer, UserReadSerializer, ShopReadSerializer, MixValidSerializer, \
     BoardReadListSerializer, MixValidListSerializer, MyShopSerializer, MyBoardSerializer, MyMixedSerializer, \
-    ReviewBoardSerializer, ReviewUserSerializer, ReviewSerializer
+    ReviewBoardSerializer, ReviewUserSerializer, ReviewSerializer, BoardCreateSerializer
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -30,15 +29,26 @@ def post_board_view(request):
             photo_data = None
 
         get_object_or_404(Market, pk=request.data.get("market_id"))
-        get_object_or_404(Shop, pk=request.data.get("shop_id"))
+        shop = get_object_or_404(Shop, pk=request.data.get("shop_id"))
 
-        if user.is_owner:
-            serializer = BoardOwnerSerializer(data=data)
-        else:
-            serializer = BoardCustomerSerializer(data=data)
+        serializer = BoardCreateSerializer(data=data)
+
         if serializer.is_valid():
             board = serializer.save()
             response_data = serializer.data.copy()
+
+            shop_boards = Board.objects.filter(shop_id=shop.shop_id)  # rating 반영해서 shop 의 avg_rating 설정
+            if board.rating is not None:  #
+                avg_rating = 0
+                total_count = 0
+                for shop_board in shop_boards:
+                    if shop_board.user_id.is_owner is False:
+                        avg_rating += shop_board.rating
+                        total_count += 1
+                avg_rating = avg_rating/total_count
+                shop.rating = avg_rating
+                shop.save()
+
             if photo_data is not None:  # 사진 있으면 따로 연결된 객체 생성
                 for image in photo_data:
                     BoardPhoto.objects.create(board_id=board.board_id, image=image)
