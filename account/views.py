@@ -10,6 +10,7 @@ from rest_framework.generics import get_object_or_404
 
 from account.serializers import BlackListSerializer, LoginSerializer, RegisterSerializer, CustomerUpdateSerializer, \
     OwnerShopInfoSerializer
+from boards.models import Board
 from market.models import Market
 from shop.models import Shop
 from shop.serializers import ShopModifySerializer
@@ -100,13 +101,13 @@ def user_info_view(request):
         "is_owner": user.is_owner,
     }
 
-    if not user.is_owner:
+    if not user.is_owner:  # 사장이 아닐 때
         favourite_markets = user.user_favorite_markets.all()
         market = []
         for favourite_market in favourite_markets:
             market_data = {
                 "market_id": favourite_market.market_id,
-                "market_name": favourite_market.market_name
+                "market_name": favourite_market.market_name,
             }
             market.append(market_data)
 
@@ -118,15 +119,22 @@ def user_info_view(request):
                 "profile": user.profile,
                 "introduction": user.introduction,
                 "is_owner": user.is_owner,
-                "favourite_market": market
+                "favourite_market": market,
+                "favourite_count": favourite_markets.count(),
             },
             status=status.HTTP_200_OK,
         )
         return res
 
-    else:
+    else:  # 사장
         shop = user.my_shop
         shop_serializer = OwnerShopInfoSerializer(instance=shop)
+        review_count = 0
+        reviews = Board.objects.filter(shop_id=shop.shop_id)
+        for review in reviews:
+            if review.user_id.is_owner is False:
+                review_count += 1
+
         res = Response(data={
             "user_id": user.id,
             "email": user.email,
@@ -143,7 +151,8 @@ def user_info_view(request):
                 "closing_time": shop_serializer.data["closing_time"],
                 "opening_frequency": shop_serializer.data["opening_frequency"],
                 "product": shop_serializer.data["product"],
-            }
+            },
+            "review_count": review_count,
         }, status=status.HTTP_200_OK)
         return res
 
