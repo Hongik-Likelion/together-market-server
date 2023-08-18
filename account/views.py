@@ -120,6 +120,7 @@ def user_info_view(request):
                 "introduction": user.introduction,
                 "is_owner": user.is_owner,
                 "favourite_market": market,
+                "board_count": Board.objects.filter(user_id=user.id).count(),
                 "favourite_count": favourite_markets.count(),
             },
             status=status.HTTP_200_OK,
@@ -152,6 +153,7 @@ def user_info_view(request):
                 "opening_frequency": shop_serializer.data["opening_frequency"],
                 "product": shop_serializer.data["product"],
             },
+            "board_count": Board.objects.filter(user_id=user.id).count(),
             "review_count": review_count,
         }, status=status.HTTP_200_OK)
         return res
