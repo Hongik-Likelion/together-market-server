@@ -30,17 +30,16 @@ def get_market_list_view(request):
 @permission_classes([IsAuthenticated])
 def post_favourite_market(request):
     user = request.user
-    market_ids = request.data.getlist("market_id")
+    market_id = request.data.get("market_id")
 
-    for market_id in market_ids:
-        market = get_object_or_404(Market, pk=market_id)
+    market = get_object_or_404(Market, pk=market_id)
 
-        if user in market.favourite_markets.all():
-            return Response(
-                data={"message": "이미 등록된 시장"}, status=status.HTTP_400_BAD_REQUEST
-            )
-        else:
-            market.favourite_markets.add(request.user)
+    if user in market.favourite_markets.all():
+        return Response(
+            data={"message": "이미 등록된 시장"}, status=status.HTTP_400_BAD_REQUEST
+        )
+    else:
+        market.favourite_markets.add(request.user)
 
     return Response(
         data={

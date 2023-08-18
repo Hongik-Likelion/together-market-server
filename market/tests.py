@@ -82,7 +82,7 @@ class TestMarketApi(APITestCase):
         url_login = "/user/login/"
         url_favourite = "/markets/favourite/"
         request_email = {"email": "testuser@gmail.com"}
-        market_ids = {"market_id": [1, 2]}
+        market_ids = {"market_id": [1]}
         # when
         login_response = self.client.post(url_login, request_email)
 
