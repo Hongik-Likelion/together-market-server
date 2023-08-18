@@ -57,11 +57,11 @@ class BoardCreateSerializer(serializers.ModelSerializer):  # 게시글 생성 �
     user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     market_id = serializers.PrimaryKeyRelatedField(queryset=Market.objects.all())
     shop_id = serializers.PrimaryKeyRelatedField(queryset=Shop.objects.all())
-    photo = serializers.ListSerializer(child=serializers.CharField(max_length=2750, allow_blank=True))
+    rating = serializers.IntegerField(min_value=1, max_value=5, allow_null=True)
 
     class Meta:
         model = Board
-        fields = ("user_id", "market_id", "market_name", "shop_id", "shop_name", "purchased_products", "content")
+        fields = ("user_id", "market_id", "market_name", "shop_id", "shop_name", "purchased_products", "content", "rating")
 
     def create(self, validated_data):
         purchased_products_data = validated_data.pop('purchased_products', [])
@@ -72,17 +72,6 @@ class BoardCreateSerializer(serializers.ModelSerializer):  # 게시글 생성 �
             board.purchased_products.add(product_id)
 
         return board
-
-
-class BoardCustomerSerializer(BoardCreateSerializer):
-    rating = serializers.IntegerField(min_value=1, max_value=5)
-    class Meta(BoardCreateSerializer.Meta):
-        fields = BoardCreateSerializer.Meta.fields + ("rating",)
-
-
-class BoardOwnerSerializer(BoardCreateSerializer):
-    class Meta(BoardCreateSerializer.Meta):
-        pass
 
 
 class UserReadSerializer(serializers.ModelSerializer):
