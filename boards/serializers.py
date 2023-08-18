@@ -99,7 +99,7 @@ class BoardReadSerializer(serializers.ModelSerializer):
 
 
 class BoardReadListSerializer(serializers.ModelSerializer):
-    rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False, allow_null=True)
     updated_at = serializers.CharField(max_length=15, read_only=True)
 
     class Meta:
@@ -109,6 +109,7 @@ class BoardReadListSerializer(serializers.ModelSerializer):
 
 class ShopReadSerializer(serializers.ModelSerializer):
     shop_id = serializers.IntegerField()
+    rating = serializers.FloatField(allow_null=True)
     class Meta:
         model = Shop
         fields = ("shop_id", "shop_name", "rating")
