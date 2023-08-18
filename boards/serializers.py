@@ -102,7 +102,7 @@ class PhotoSerializer(serializers.ModelSerializer):
 
 class BoardReadSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
-    photo = PhotoSerializer(many=True)
+    photo = PhotoSerializer(many=True, required=False)
     updated_at = serializers.CharField(max_length=15, read_only=True)
     class Meta:
         model = Board
@@ -170,7 +170,6 @@ class ReviewBoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
         fields = ("board_id", "updated_at", "rating", "content")
-
 
 
 class ReviewSerializer(serializers.Serializer):
