@@ -13,7 +13,7 @@ class SingleCreateBoardSerializer(serializers.ModelSerializer):  # 게시글 단
 
     class Meta:
         model = Board
-        fields = ("market_name", "shop_name", "purchased_products", "content")
+        fields = ("board_id", "market_name", "shop_name", "purchased_products", "content")
 
     def update(self, instance, validated_data):
         purchased_products_data = validated_data.pop('purchased_products', [])
@@ -88,14 +88,13 @@ class PhotoSerializer(serializers.ModelSerializer):
         fields = ("image",)
 
 
-
 class BoardReadSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
     photo = PhotoSerializer(many=True, required=False)
     updated_at = serializers.CharField(max_length=15, read_only=True)
     class Meta:
         model = Board
-        fields = ("rating", "photo", "content", "updated_at")
+        fields = ("board_id", "rating", "photo", "content", "updated_at")
 
 
 class BoardReadListSerializer(serializers.ModelSerializer):
@@ -104,7 +103,7 @@ class BoardReadListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Board
-        fields = ("rating", "content", "updated_at")
+        fields = ("board_id", "rating", "content", "updated_at")
 
 
 class ShopReadSerializer(serializers.ModelSerializer):

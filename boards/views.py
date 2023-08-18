@@ -198,7 +198,6 @@ def single_board_view(request, board_id):
         if board.get_report_count() > 4:  # 신고 누적 조회
             return Response(data={"message: 신고 누적된 게시물"}, status=status.HTTP_400_BAD_REQUEST)
 
-
         board_serializer = BoardReadSerializer(instance=board)
         user_serializer = UserReadSerializer(instance=user)
         shop_serializer = ShopReadSerializer(instance=shop)  # 좋아요 추가 필요
