@@ -98,8 +98,9 @@ def post_board_view(request):
 
                 if mixSerializer.is_valid():
                     data.append(res_data)
+                    print("등록 성공")
                 else:
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                    return Response(status=status.HTTP_400_BAD_REQUEST, data={"message": "validation 실패"})
 
             return Response(data=data, status=status.HTTP_200_OK)
 
