@@ -19,6 +19,7 @@ def get_market_list_view(request):
             {
                 "market_id": market.market_id,
                 "market_name": market.market_name,
+                "market_address": market.street_address,
             }
         )
 
