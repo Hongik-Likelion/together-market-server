@@ -30,7 +30,7 @@ def post_board_view(request):
             photo_data = None
 
         get_object_or_404(Market, pk=request.data.get("market_id"))
-        get_object_or_404(Shop, pk=request.data.get("shop_id"))
+        shop = get_object_or_404(Shop, pk=request.data.get("shop_id"))
 
         if user.is_owner:
             serializer = BoardOwnerSerializer(data=data)
@@ -39,6 +39,15 @@ def post_board_view(request):
         if serializer.is_valid():
             board = serializer.save()
             response_data = serializer.data.copy()
+
+            shop_boards = Board.objects.filter(shop_id=shop.shop_id)  # rating 반영해서 shop의 avg_rating 설정
+            avg_rating = 0
+            for shop_board in shop_boards:
+                avg_rating += shop_board.rating
+            avg_rating = avg_rating/shop_boards.count()
+            shop.rating = avg_rating
+            shop.save()
+
             if photo_data is not None:  # 사진 있으면 따로 연결된 객체 생성
                 for image in photo_data:
                     BoardPhoto.objects.create(board_id=board.board_id, image=image)

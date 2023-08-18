@@ -65,20 +65,13 @@ class ShopView(APIView):
                 market_id = serializer.data["market"]
                 market = get_object_or_404(Market, market_id=market_id)
 
-                boards = Board.objects.filter(shop_id=shop.shop_id)  # 평균 별점 구하기
-                avg_rating = 0
-                if boards.exists():
-                    for board in boards:
-                        board.rating += avg_rating
-                    avg_rating = avg_rating/boards.count()
-
                 data = {
                     "market_name": market.market_name,
                     "shop_name": serializer.data["shop_name"],
                     "shop_address": serializer.data["shop_address"],
                     "opening_time": serializer.data["opening_time"],
                     "closing_time": serializer.data["closing_time"],
-                    "average_rating": avg_rating,
+                    "average_rating": serializer.data["rating"],
                     "is_liked": True,
                 }
                 res_data.append(data)
